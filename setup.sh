@@ -14,7 +14,7 @@ fi
 echo "Using HOST_IP ${HOST_IP}"
 
 echo "Waiting for Polaris API to be ready..."
-while ! curl -s http://localhost:8181/api/management/v1/health > /dev/null; do
+while ! curl -sf http://localhost:8182/q/health > /dev/null; do
   sleep 2
 done
 

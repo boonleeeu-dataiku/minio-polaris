@@ -47,6 +47,7 @@ services:
     command: ["bootstrap", "--realm=POLARIS", "--credential=POLARIS,root,${POLARIS_ROOT_SECRET:-s3cr3t}"]
     environment:
       - POLARIS_PERSISTENCE_TYPE=relational-jdbc
+      - POLARIS_PERSISTENCE_RELATIONAL_JDBC_DATABASE_TYPE=postgresql
       - QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://polaris-db:5432/polaris
       - QUARKUS_DATASOURCE_USERNAME=polaris
       - QUARKUS_DATASOURCE_PASSWORD=password
@@ -69,9 +70,11 @@ services:
         condition: service_completed_successfully
     environment:
       - POLARIS_PERSISTENCE_TYPE=relational-jdbc
+      - POLARIS_PERSISTENCE_RELATIONAL_JDBC_DATABASE_TYPE=postgresql
       - QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://polaris-db:5432/polaris
       - QUARKUS_DATASOURCE_USERNAME=polaris
       - QUARKUS_DATASOURCE_PASSWORD=password
+      - POLARIS_REALM_CONTEXT_REALMS=POLARIS
       - AWS_REGION=us-east-1
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-minioadmin}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-minioadmin}
