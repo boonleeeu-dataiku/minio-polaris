@@ -55,7 +55,8 @@ call POST /management/v1/catalogs "{
   \"properties\": {
     \"default-base-location\": \"s3://dataiku/\",
     \"s3.endpoint\": \"http://${HOST_IP}:9000\",
-    \"s3.path-style-access\": \"true\"
+    \"s3.path-style-access\": \"true\",
+    \"polaris.config.drop-with-purge.enabled\": \"true\"
   },
   \"storageConfigInfo\": {
     \"storageType\": \"S3\",
