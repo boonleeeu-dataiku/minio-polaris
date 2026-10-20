@@ -1,7 +1,7 @@
 services:
   # 1. The Minio server (no volume: data is discarded on `docker compose down`)
   minio:
-    image: minio/minio
+    image: quay.io/minio/minio
     container_name: minio
     ports:
       - "9000:9000" # API
@@ -18,7 +18,7 @@ services:
 
   # 2. The bucket initializer (runs once then exits)
   minio-init:
-    image: minio/mc
+    image: quay.io/minio/mc
     container_name: minio-init
     depends_on:
       minio:
