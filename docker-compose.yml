@@ -35,6 +35,9 @@ services:
       POSTGRES_DB: polaris
       POSTGRES_USER: polaris
       POSTGRES_PASSWORD: password
+    volumes:
+      # Polaris does not create its schema itself; this runs on first (empty) init only
+      - ./create-polaris-schema.sql:/docker-entrypoint-initdb.d/create-polaris-schema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U polaris"]
       interval: 5s
