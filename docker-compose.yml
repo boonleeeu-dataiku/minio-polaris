@@ -1,0 +1,107 @@
+services:
+  # 1. The minio server 
+  minio:
+    image: minio/minio
+    container_name: minio
+    restart: always
+    ports:
+      - "9000:9000" # API
+      - "9001:9001" # Console (UI)
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+# 2. The Credential & Bucket Initializer
+  minio-init:
+    image: minio/mc
+    container_name: minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      - ACCESS_KEY=minioadmin
+      - SECRET_KEY=minioadmin
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 minioadmin minioadmin &&
+      mc mb --ignore-existing local/dataiku &&
+      echo 'Bucket dataiku created successfully';
+      exit 0;
+      "
+
+  # 3. The Metadata Database
+  polaris-db:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_DB: polaris
+      POSTGRES_USER: polaris
+      POSTGRES_PASSWORD: password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U polaris"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 4. The Bootstrap Tool (Runs once then exits)
+  polaris-bootstrap:
+    image: apache/polaris-admin-tool:latest
+    command: ["bootstrap", "--realm=POLARIS", "--credential=POLARIS,root,s3cr3t"]
+    environment:
+      - POLARIS_PERSISTENCE_TYPE=relational-jdbc
+      - QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://polaris-db:5432/polaris
+      - QUARKUS_DATASOURCE_USERNAME=polaris
+      - QUARKUS_DATASOURCE_PASSWORD=password
+    depends_on:
+      polaris-db:
+        condition: service_healthy
+
+  # 5. The Polaris Server
+  polaris:
+    image: apache/polaris:latest
+    restart: always
+    ports:
+      - "8181:8181" # REST API
+      - "8182:8182" # Management/Health
+    depends_on:
+      minio:
+        condition: service_healthy
+      polaris-bootstrap:
+        condition: service_completed_successfully
+    environment:
+      - POLARIS_PERSISTENCE_TYPE=relational-jdbc
+      - QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://polaris-db:5432/polaris
+      - QUARKUS_DATASOURCE_USERNAME=polaris
+      - QUARKUS_DATASOURCE_PASSWORD=password
+      # Default credentials for your lab (Change for prod!)
+      - POLARIS_BOOTSTRAP_CREDENTIALS=POLARIS,root,s3cr3t
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-minioadmin}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-minioadmin}
+      - POLARIS_FEATURES_ALLOW_INSECURE_STORAGE_TYPES=true
+      - POLARIS_FEATURES_DROP_WITH_PURGE_ENABLED=true
+      - POLARIS_FEATURES_ALLOW_OVERLAPPING_CATALOG_URLS=true
+      - POLARIS_FEATURES_ALLOW_NAMESPACE_CUSTOM_LOCATION=true
+      - POLARIS_FEATURES_ENABLE_CATALOG_FEDERATION=true
+      - POLARIS_FEATURES_IGNORE_SEVERE_ISSUES=true
+
+  # 6. The Polaris Setup Worker
+  polaris-setup-worker:
+    image: curlimages/curl:latest
+    user: root
+    network_mode: "host"
+    environment:
+      - S3_REGION=us-east-1
+    volumes:
+      - ./setup.sh:/usr/local/bin/setup.sh:ro,Z
+      - ./polaris_creds.env:/usr/local/bin/polaris_creds.env:rw,Z
+    depends_on:
+      - polaris
+    entrypoint: ["/bin/sh", "/usr/local/bin/setup.sh"]
+
