@@ -50,7 +50,7 @@ services:
 
   # 4. The bootstrap tool (runs once then exits)
   polaris-bootstrap:
-    image: apache/polaris-admin-tool:latest
+    image: apache/polaris-admin-tool:1.8.0
     command: ["bootstrap", "--realm=POLARIS", "--credential=POLARIS,root,${POLARIS_ROOT_SECRET:-s3cr3t}"]
     environment:
       - POLARIS_PERSISTENCE_TYPE=relational-jdbc
@@ -64,7 +64,7 @@ services:
 
   # 5. The Polaris server
   polaris:
-    image: apache/polaris:latest   # TODO: pin to the version you have validated (see README)
+    image: apache/polaris:1.8.0   # version validated on the lab host
     restart: unless-stopped
     # Memory caps: a leak or runaway request is contained instead of starving the DSS host.
     # Heap stays well below the container limit so the JVM fails/GCs before the kernel OOM-kills it.

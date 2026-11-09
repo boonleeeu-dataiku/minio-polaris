@@ -90,4 +90,4 @@ These containers may share a host with a Dataiku DSS node, so every long-running
 
 Heap is kept below the container limit so the JVM fails or garbage-collects before the kernel OOM-kills the container. If a container is killed, Docker restarts it; catalog state survives (it is in Postgres). **If Polaris restarts, also restart Trino** (`docker compose restart polaris trino`), otherwise Trino fails with `Failed to check namespace`.
 
-Trino is pinned to `trinodb/trino:484`. Pin Polaris to the version you validated: `docker image inspect apache/polaris:latest --format '{{index .Config.Labels "org.opencontainers.image.version"}}'`, then replace `latest` in `docker-compose.yml`.
+Trino is pinned to `trinodb/trino:484` and Polaris (server and admin tool) to `1.8.0`, the versions validated on the lab host. To see what a running Polaris is: `docker compose logs polaris --no-color | grep -a "polaris-server"`.
