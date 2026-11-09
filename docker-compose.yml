@@ -104,3 +104,21 @@ services:
     depends_on:
       - polaris
     entrypoint: ["/bin/sh", "/usr/local/bin/setup.sh"]
+
+  # 7. Trino (single node) with an Iceberg catalog backed by Polaris + Minio.
+  # Waits for the setup worker so polaris_creds.env exists; reads it at startup.
+  trino:
+    image: trinodb/trino:latest   # pin a specific version for repeatable labs
+    container_name: trino
+    ports:
+      - "${TRINO_PORT:-8080}:8080"
+    volumes:
+      - ./trino/catalog/iceberg.properties:/etc/trino/catalog/iceberg.properties:ro
+      - ./trino/entrypoint.sh:/entrypoint.sh:ro
+      - ./:/out:ro # polaris_creds.env is read from here
+    entrypoint: ["/bin/sh", "/entrypoint.sh"]
+    depends_on:
+      polaris:
+        condition: service_started
+      polaris-setup-worker:
+        condition: service_completed_successfully
