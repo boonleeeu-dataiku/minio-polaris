@@ -8,5 +8,16 @@ fi
 . /out/polaris_creds.env
 export POLARIS_CREDENTIAL="${CLIENT_ID}:${CLIENT_SECRET}"
 
+# Cap the JVM heap without replacing the image's other JVM flags:
+# copy the stock config dir, override only -Xmx, and point Trino at the copy.
+ETC=/tmp/trino-etc
+rm -rf "$ETC"
+cp -r /etc/trino "$ETC"
+if grep -q '^-Xmx' "$ETC/jvm.config"; then
+  sed -i "s/^-Xmx.*/-Xmx${TRINO_HEAP:-3G}/" "$ETC/jvm.config"
+else
+  echo "-Xmx${TRINO_HEAP:-3G}" >> "$ETC/jvm.config"
+fi
+
 # Same command the trinodb/trino image uses by default (it has no ENTRYPOINT).
-exec /usr/lib/trino/bin/launcher run --etc-dir /etc/trino
+exec /usr/lib/trino/bin/launcher run --etc-dir "$ETC"

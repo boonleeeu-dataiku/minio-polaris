@@ -76,3 +76,18 @@ You can either run this on a standalone Linux server with network connectivity t
 The polaris-setup-worker spins up on `network_mode=host` in order to be on the same network as the host machine and setup.sh will then try to retrieve the host's machine IP address in order to configure the Polaris REST catalog to connect with the Minio service also listening on the same IP address. This process should work fine in most situations but not thoroughly validated.
 
 If the wrong IP is detected, export `HOST_IP=<ip>` before running `docker compose up -d` to override it.
+
+## Resource limits (shared host)
+
+These containers may share a host with a Dataiku DSS node, so every long-running service has a memory cap and `restart: unless-stopped`. Defaults (override by exporting before `docker compose up -d`):
+
+| Service | Container limit | JVM heap | Variables |
+|---|---|---|---|
+| Polaris | 3g | 1536m (+256m direct) | `POLARIS_MEM_LIMIT`, `POLARIS_HEAP`, `POLARIS_DIRECT_MEM` |
+| Trino | 4g | 3G | `TRINO_MEM_LIMIT`, `TRINO_HEAP` |
+| Postgres | 512m | n/a | `POLARIS_DB_MEM_LIMIT` |
+| Minio | 1g | n/a | `MINIO_MEM_LIMIT` |
+
+Heap is kept below the container limit so the JVM fails or garbage-collects before the kernel OOM-kills the container. If a container is killed, Docker restarts it; catalog state survives (it is in Postgres). **If Polaris restarts, also restart Trino** (`docker compose restart polaris trino`), otherwise Trino fails with `Failed to check namespace`.
+
+Trino is pinned to `trinodb/trino:484`. Pin Polaris to the version you validated: `docker image inspect apache/polaris:latest --format '{{index .Config.Labels "org.opencontainers.image.version"}}'`, then replace `latest` in `docker-compose.yml`.
