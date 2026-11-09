@@ -8,20 +8,5 @@ fi
 . /out/polaris_creds.env
 export POLARIS_CREDENTIAL="${CLIENT_ID}:${CLIENT_SECRET}"
 
-# The location of run-trino differs between Trino image versions; look for it.
-RUN_TRINO=""
-for p in /usr/lib/trino/bin/run-trino /usr/lib/trino/run-trino /usr/bin/run-trino /opt/trino/bin/run-trino; do
-  if [ -x "$p" ]; then RUN_TRINO="$p"; break; fi
-done
-if [ -z "$RUN_TRINO" ]; then
-  RUN_TRINO="$(command -v run-trino || true)"
-fi
-if [ -z "$RUN_TRINO" ]; then
-  RUN_TRINO="$(find / -name run-trino -type f 2>/dev/null | head -n 1)"
-fi
-if [ -z "$RUN_TRINO" ]; then
-  echo "Could not locate run-trino in this image."
-  exit 1
-fi
-echo "Starting Trino via $RUN_TRINO"
-exec "$RUN_TRINO"
+# Same command the trinodb/trino image uses by default (it has no ENTRYPOINT).
+exec /usr/lib/trino/bin/launcher run --etc-dir /etc/trino
