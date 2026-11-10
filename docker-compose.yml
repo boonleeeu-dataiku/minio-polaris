@@ -7,8 +7,8 @@ services:
     restart: unless-stopped
     mem_limit: ${MINIO_MEM_LIMIT:-1g}
     ports:
-      - "9000:9000" # API
-      - "9001:9001" # Console (UI)
+      - "${MINIO_API_PORT:-9000}:9000" # API
+      - "${MINIO_CONSOLE_PORT:-9001}:9001" # Console (UI)
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
@@ -70,8 +70,8 @@ services:
     # Heap stays well below the container limit so the JVM fails/GCs before the kernel OOM-kills it.
     mem_limit: ${POLARIS_MEM_LIMIT:-3g}
     ports:
-      - "8181:8181" # REST API
-      - "8182:8182" # Management/Health
+      - "${POLARIS_API_PORT:-8181}:8181" # REST API
+      - "${POLARIS_MGMT_PORT:-8182}:8182" # Management/Health
     depends_on:
       minio:
         condition: service_healthy
@@ -99,6 +99,7 @@ services:
   # 6. The Polaris setup worker (runs once then exits)
   # Host networking lets it detect the host IP that Minio is reachable on.
   # Optionally export HOST_IP to override the detection.
+  # The worker reaches Polaris and registers Minio via the published host ports.
   polaris-setup-worker:
     image: curlimages/curl:latest
     user: root
@@ -106,6 +107,10 @@ services:
     environment:
       - S3_REGION=us-east-1
       - HOST_IP=${HOST_IP:-}
+      # Host ports published by minio/polaris (override if the defaults are taken)
+      - MINIO_API_PORT=${MINIO_API_PORT:-9000}
+      - POLARIS_API_PORT=${POLARIS_API_PORT:-8181}
+      - POLARIS_MGMT_PORT=${POLARIS_MGMT_PORT:-8182}
       - POLARIS_ROOT_SECRET=${POLARIS_ROOT_SECRET:-s3cr3t}
     volumes:
       - ./setup.sh:/usr/local/bin/setup.sh:ro

@@ -41,6 +41,17 @@ Note: no volumes are used, so all Minio data and catalog metadata are discarded 
 You can either run this on a standalone Linux server with network connectivity to the DSS instance OR simply run them on the DSS instance. Ensure docker compose (v2) is installed on the server:
 
 *  Clone this repo (or place docker-compose.yml, setup.sh, create-polaris-schema.sql and the `trino/` folder in the same folder) and run `docker compose up -d`. The credentials are written to `polaris_creds.env` in that folder. The first run pulls several images and takes a few minutes.
+*  If a default port is already taken on the host, override it by exporting the variable(s) below (or putting them in a `.env` file next to docker-compose.yml) before `docker compose up -d`:
+
+    | Variable | Service | Default |
+    |---|---|---|
+    | `MINIO_API_PORT` | Minio S3 API | 9000 |
+    | `MINIO_CONSOLE_PORT` | Minio UI | 9001 |
+    | `POLARIS_API_PORT` | Polaris REST API | 8181 |
+    | `POLARIS_MGMT_PORT` | Polaris management/health | 8182 |
+    | `TRINO_PORT` | Trino | 8080 |
+
+    e.g. `MINIO_API_PORT=19000 POLARIS_API_PORT=18181 docker compose up -d`. Use the same ports in the Dataiku connections below. Postgres is not published, so it needs no port.
 *  Take note of your primary IP address [HOST_IP] of the host machine. In cloud environment, it is typically in 10.x.x.x address. This will be the IP address the Minio, Polaris and Trino services listening on.
 *  Verify the stack:
     ```bash
@@ -56,7 +67,7 @@ You can either run this on a standalone Linux server with network connectivity t
     - Credentials: AWS keypair
     - Access key: minioadmin
     - Secret key: minioadmin
-    - Region/Endpoint: http://[HOST_IP]:9000
+    - Region/Endpoint: http://[HOST_IP]:[MINIO_API_PORT] (default 9000)
     #### Path restrictions
     - Bucket: dataiku
     #### Advanced
@@ -65,7 +76,7 @@ You can either run this on a standalone Linux server with network connectivity t
 *  At Dataiku instance, create a new Iceberg connection and provide the following parameters:
     #### Connection
     - Catalog type: REST
-    - URI: http://[HOST_IP]:8181/api/catalog
+    - URI: http://[HOST_IP]:[POLARIS_API_PORT]/api/catalog (default 8181)
     - Warehouse: dataiku_catalog
     - Authentication type: User/Password
         - User: [CLIENT_ID]

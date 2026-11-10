@@ -1,7 +1,10 @@
 #!/bin/sh
 set -e
 
-BASE=http://localhost:8181/api
+MINIO_API_PORT="${MINIO_API_PORT:-9000}"
+POLARIS_API_PORT="${POLARIS_API_PORT:-8181}"
+POLARIS_MGMT_PORT="${POLARIS_MGMT_PORT:-8182}"
+BASE=http://localhost:${POLARIS_API_PORT}/api
 ROOT_SECRET="${POLARIS_ROOT_SECRET:-s3cr3t}"
 CREDS_FILE=/out/polaris_creds.env
 
@@ -14,7 +17,7 @@ fi
 echo "Using HOST_IP ${HOST_IP}"
 
 echo "Waiting for Polaris API to be ready..."
-while ! curl -sf http://localhost:8182/q/health > /dev/null; do
+while ! curl -sf http://localhost:${POLARIS_MGMT_PORT}/q/health > /dev/null; do
   sleep 2
 done
 
@@ -54,14 +57,14 @@ call POST /management/v1/catalogs "{
   \"type\": \"INTERNAL\",
   \"properties\": {
     \"default-base-location\": \"s3://dataiku/\",
-    \"s3.endpoint\": \"http://${HOST_IP}:9000\",
+    \"s3.endpoint\": \"http://${HOST_IP}:${MINIO_API_PORT}\",
     \"s3.path-style-access\": \"true\",
     \"polaris.config.drop-with-purge.enabled\": \"true\"
   },
   \"storageConfigInfo\": {
     \"storageType\": \"S3\",
     \"allowedLocations\": [\"s3://dataiku/\"],
-    \"endpoint\": \"http://${HOST_IP}:9000\",
+    \"endpoint\": \"http://${HOST_IP}:${MINIO_API_PORT}\",
     \"pathStyleAccess\": true,
     \"region\": \"${S3_REGION}\"
   }
