@@ -62,7 +62,9 @@ You can either run this on a standalone Linux server with network connectivity t
 
 ### Creating the connections
 
-*  At Dataiku instance, create a new S3 connection and provide the following parameters:
+Create three connections in Dataiku (Administration > Connections > New connection): an **S3** connection to Minio, an **Iceberg** connection to Polaris, and, optionally, a **Trino** connection. Create the S3 connection first, then the Iceberg connection, then Trino.
+
+*  **Connection 1 of 3 - S3 connection (to Minio).** At Dataiku instance, create a new **S3** connection and provide the following parameters:
     #### Connection
     - Credentials: AWS keypair
     - Access key: minioadmin
@@ -73,7 +75,7 @@ You can either run this on a standalone Linux server with network connectivity t
     #### Advanced
     - Use path style: CHECKED
 
-*  At Dataiku instance, create a new Iceberg connection and provide the following parameters:
+*  **Connection 2 of 3 - Iceberg connection (to Polaris).** At Dataiku instance, create a new **Iceberg** connection and provide the following parameters:
     #### Connection
     - Catalog type: REST
     - URI: http://[HOST_IP]:[POLARIS_API_PORT]/api/catalog (default 8181)
@@ -89,8 +91,13 @@ You can either run this on a standalone Linux server with network connectivity t
     - namespace: dataiku
     #### Custom properties
     - Catalog name: dataiku_catalog
+    - (Optional, only if you also intend to use Trino with these Iceberg datasets) Link the Iceberg connection to Trino. Create the Trino connection below first (or come back to this step afterwards), then set:
+        - Associated Trino conn.: the exact name of your Dataiku Trino connection (e.g. `local_trino`)
+        - Associated Trino catalog: `iceberg` (the Trino catalog defined by `trino/catalog/iceberg.properties`, not the Polaris catalog name `dataiku_catalog`)
 
-*  (Optional) To query the same Iceberg tables with Trino, create a new **Trino** connection (a native connection type in recent DSS versions) and provide the following parameters:
+        Leave "Is Athena connection" unchecked. With both values set, Dataiku knows which Trino connection and catalog expose the same tables, so Trino can be used as an engine on Iceberg datasets.
+
+*  **Connection 3 of 3 (optional) - Trino connection.** To query the same Iceberg tables with Trino, create a new **Trino** connection (a native connection type in recent DSS versions) and provide the following parameters:
     #### Basic params
     - Host: [HOST_IP] (or `localhost` when DSS runs on the same machine as the containers)
     - Port: 8080 (or your `TRINO_PORT`)
