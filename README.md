@@ -92,6 +92,7 @@ Create three connections in Dataiku (Administration > Connections > New connecti
     - Default namespace: dataiku
     #### Rules for new datasets
     - namespace: dataiku
+    - Table prefix: `${projectKey}_` (**do not leave empty**). Without the prefix, datasets with the same name in different Dataiku projects map to the same Iceberg table in the shared `dataiku` namespace and overwrite or conflict with each other. Dataiku does not necessarily fill this in for you, so enter it explicitly. Use the same prefix on the Trino connection below so both connections address the same tables.
     #### Custom properties
     - Catalog name: dataiku_catalog
     - (Optional, only if you also intend to use Trino with these Iceberg datasets) Link the Iceberg connection to Trino. Create the Trino connection below first (or come back to this step afterwards), then set:
