@@ -133,11 +133,30 @@ services:
       - "${TRINO_PORT:-8080}:8080"
     volumes:
       - ./trino/catalog/iceberg.properties:/etc/trino/catalog/iceberg.properties:ro
+      - ./trino/catalog/hive.properties:/etc/trino/catalog/hive.properties:ro # staging catalog for fast-write
       - ./trino/entrypoint.sh:/entrypoint.sh:ro
       - ./:/out:ro # polaris_creds.env is read from here
     entrypoint: ["/bin/sh", "/entrypoint.sh"]
+    healthcheck:
+      test: ["CMD-SHELL", "trino --execute 'SELECT 1' > /dev/null 2>&1"]
+      interval: 30s
+      timeout: 20s
+      retries: 10
+      start_period: 60s
     depends_on:
       polaris:
         condition: service_started
       polaris-setup-worker:
         condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully
+
+  # 8. Trino init (runs once then exits): creates the staging schema used by Dataiku's
+  # Trino "Automatic fast-write" (Catalog for fast-load = hive, Schema for fast-load = staging).
+  # Idempotent; the schema is lost with Minio on `docker compose down`, so it is recreated on every `up`.
+  trino-init:
+    image: trinodb/trino:484
+    depends_on:
+      trino:
+        condition: service_healthy
+    entrypoint: ["trino", "--server", "http://trino:8080", "--execute", "CREATE SCHEMA IF NOT EXISTS hive.staging"]

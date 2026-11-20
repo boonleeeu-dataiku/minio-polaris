@@ -107,6 +107,7 @@ Create three connections in Dataiku (Administration > Connections > New connecti
         - Password: (empty)
     #### Advanced params
     - Driver to use: Dataiku-managed
+    - Automatic fast-write (optional): see "Trino Automatic fast-write" below
     #### Rules for new datasets
     - Catalog: iceberg
     - Schema: dataiku
@@ -125,7 +126,21 @@ Create three connections in Dataiku (Administration > Connections > New connecti
 | Small outputs from another engine into Trino | Works through plain JDBC `INSERT` (DSS engine), e.g. a Sample/Filter recipe with a few rows |
 | Large outputs from another engine into Trino | Avoid: DSS streams rows through JDBC `INSERT` batches, which Trino handles poorly (an initial 29k-row sync hung for minutes). Write to the Iceberg connection instead |
 
-Trino's "Automatic fast-write" is not configured here: it needs a Hive-connector catalog (and a Hive Metastore), which this stack does not include.
+### Trino "Automatic fast-write"
+
+For large outputs from other engines into Trino, enable "Automatic fast-write" on the Trino connection (Advanced params). DSS stages Parquet files in Minio, and Trino creates a temporary external table over them (in the `hive` staging catalog), copies the rows into the Iceberg table, and drops the temporary table. This needs a Hive-connector catalog (external locations are not supported by the Iceberg connector), provided by `trino/catalog/hive.properties` using Trino's file metastore stored in Minio (no Hive Metastore container). The `trino-init` container creates the `hive.staging` schema on every `up`.
+
+Set these on the Trino connection:
+
+| Field | Value |
+|---|---|
+| Automatic fast-write | checked |
+| Automatic fast-write connection | the name of your Dataiku S3 connection to Minio (e.g. `local_minio`) |
+| Path in connection | `trino-staging` |
+| Catalog for fast-load | `hive` |
+| Schema for fast-load | `staging` |
+
+Verify with `docker exec -it trino trino --execute "SHOW SCHEMAS FROM hive"` (lists `staging`). Then run a code recipe or a DSS-engine Sync from a non-Trino dataset into a Trino dataset: Parquet files appear under `s3://dataiku/trino-staging/` while it runs. Not yet validated end to end on Trino 484.
 
 ## Additional Notes
 
