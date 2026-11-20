@@ -122,7 +122,7 @@ Create three connections in Dataiku (Administration > Connections > New connecti
     - Schema: dataiku
     - Table prefix: `${projectKey}_` (default)
 
-    Naming: the Trino catalog `iceberg` is defined by `trino/catalog/iceberg.properties` and points at the Polaris catalog `dataiku_catalog`; the Polaris namespace `dataiku` is the Trino schema. A table is addressed as `iceberg.dataiku.<table>`. Tables written through the Dataiku Iceberg connection appear in Trino and vice versa. Trino lowercases table names.
+    Naming: the Trino catalog `iceberg` is defined by `trino/catalog/iceberg.properties` and points at the Polaris catalog `dataiku_catalog`; the Polaris namespace `dataiku` is the Trino schema. A table is addressed as `iceberg.dataiku.<table>`. Tables written through the Dataiku Iceberg connection appear in Trino and vice versa. Trino lowercases table names; tables created by the Dataiku Iceberg connection keep the uppercase project key (e.g. `ORDERS_FOR_MIGRATION_<table>` in Polaris), and `iceberg.rest-catalog.case-insensitive-name-matching=true` in `iceberg.properties` lets Trino find them anyway.
 
 *  To tear down setup, run `docker compose down`
 
@@ -218,4 +218,5 @@ Trino is pinned to `trinodb/trino:484` and Polaris (server and admin tool) to `1
 | Dataiku Trino job log shows `Executing SQL insert batch` and no `hive.staging` statements | Fast-write was not used: the recipe may run in-database, or the Trino connection's fast-write fields are unset or unsaved. Check "Catalog for fast-load" is `hive` and "Schema for fast-load" is `staging`. |
 | Fast-write job fails creating `hive.staging.*` or reading the staged files | The `hive` catalog cannot reach Minio, or the DSS S3 connection and the path differ. Check `docker compose logs trino`, that the S3 connection allows bucket `dataiku`, and that "Path in connection" is `trino-staging`. |
 | Dataiku Iceberg connection stops working after `down`/`up` | New credentials were generated. Copy `CLIENT_ID` / `CLIENT_SECRET` from `polaris_creds.env`. |
+| Trino dataset on an Iceberg table fails with `Table 'iceberg.dataiku.<name>' does not exist`, although `SHOW TABLES FROM iceberg.dataiku` lists it | A case mismatch: Polaris keeps the uppercase project key but Trino looks the table up in lowercase. Make sure `iceberg.rest-catalog.case-insensitive-name-matching=true` is in `trino/catalog/iceberg.properties` (run `git pull`), then `docker compose up -d trino`. |
 | Trino connection lists extra tables (`information_schema`, `system`, `jmx`) | Built-in Trino metadata and example catalogs. Your tables are under `iceberg.dataiku`. |
